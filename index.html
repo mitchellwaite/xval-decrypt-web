@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered Form</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #eef2f3;
+        }
+
+        .form-container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333333;
+        }
+
+        input {
+            margin-bottom: 20px;
+            padding: 12px;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #007BFF;
+            outline: none;
+            box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
+        }
+
+        button {
+            padding: 12px;
+            background-color: #007BFF;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .output-fields {
+            margin-top: 20px;
+        }
+
+        .output-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .output-field span {
+            margin-left: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .output-field .checkmark {
+            color: green;
+        }
+
+        .output-field .red-x {
+            color: red;
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <script type="text/javascript" src="./bower_components/crypto-js/crypto-js.js"></script>
+</head>
+<body>
+    <div class="form-container">
+      <h1>Xbox 360 XVal Decryptor</h1>
+      <p>Determines if any security events (that might lead to a ban) have been logged to the 360's flash memory. <br><br>The X value and console serial number can be found under System Settings > Console Settings > System Info.<br><br>The serial number is 12 digits long and the X value is in the format: AAAA-BBBB-CCCC-DDDD</p>
+        <form id="myForm" onsubmit="return validateForm()">
+            <label for="consoleSerial">Console Serial:</label>
+            <input type="text" id="consoleSerial" name="ConsoleSerial" required value="022953792407" maxlength=12>
+            <div id="consoleSerialError" class="error"></div>
+
+            <label for="xVal">XVal:</label>
+            <input type="text" id="xVal" name="XVal" required value="4140-7655-4DF6-1666" maxlength=19>
+            <div id="xValError" class="error"></div>
+
+            <button type="button" onclick="handleOutput(false)">Check XVal</button>
+
+            <!-- TODO implement detailed output -->
+            <!-- <button type="button" onclick="handleOutput(true)">Detailed Output</button> -->
+        </form>
+
+        <div class="output-fields" id="outputFields">
+            <!-- Output fields will be dynamically populated here -->
+        </div>
+    </div>
+
+    <script>
+      function decryptXval(consoleSerial, encryptedXval) {
+         // Step 1: Generate the HMAC-SHA1 of the message using the given key
+         const hmac = CryptoJS.HmacSHA1("XBOX360SSB", consoleSerial);
+         
+         // Step 2: Convert the HMAC result to bytes and extract the first 8 bytes
+         const hmacBytes = hmac.toString(CryptoJS.enc.Hex);
+         const desKey = CryptoJS.enc.Hex.parse(hmacBytes.slice(0, 16)); // First 8 bytes (16 hex chars)
+
+         // Step 3: Decrypt the DES-encrypted value using the extracted DES key
+         const decryptedBytes = CryptoJS.DES.decrypt(encryptedXval, desKey, {mode: CryptoJS.mode.ECB, format: CryptoJS.format.Hex});
+         
+         // Convert decrypted bytes to string and return the decrypted message
+         return decryptedBytes;
+      }
+
+      function validateForm() {
+         const xVal = document.getElementById('xVal').value;
+         const xValError = document.getElementById('xValError');
+
+         // Regular expression to match 16 alphanumeric characters or 4 groups of 4 separated by dashes
+         const xValPattern = /^(\w{16}|(\w{4}-){3}\w{4})$/;
+
+         if (!xValPattern.test(xVal)) {
+               xValError.textContent = 'XVal must be 16 alphanumeric characters or 4 groups of 4 separated by dashes.';
+               return false;
+         }
+
+         xValError.textContent = '';
+
+         const consoleSerial = document.getElementById('consoleSerial').value;
+         const consoleSerialError = document.getElementById('consoleSerialError');
+
+         // Regular expression to match a 12-digit number
+         const consoleSerialPattern = /^\d{12}$/;
+
+         if (!consoleSerialPattern.test(consoleSerial)) {
+               consoleSerialError.textContent = 'Console Serial must be a 12-digit number.';
+               return false;
+         }
+
+         consoleSerialError.textContent = '';
+
+         return true;
+      }
+
+      function handleOutput(detailed) {
+         if (!validateForm()) return;
+
+         // Grab the input fields
+         const xVal = document.getElementById('xVal').value.replace(/-/g, '');
+         const consoleSerial = document.getElementById('consoleSerial').value;
+
+         // Prepare the output
+         const outputFields = document.getElementById('outputFields');
+         outputFields.innerHTML = ''; // Clear previous outputs
+
+         // Decrypt the XVal
+         const decryptedXVal = decryptXval(consoleSerial, xVal);
+
+         // There should be exactly 8 bytes in the output, anything else is an error
+         if(decryptedXVal.sigBytes != 8)
+         {
+            const cryptoFail = document.createElement('div');
+            cryptoFail.className = 'output-field';
+
+            const cryptoFailText = document.createElement('span');
+            cryptoFailText.textContent = 'Decryption error, double check the input data';
+            cryptoFailText.className = 'red-x';
+
+            cryptoFail.appendChild(cryptoFailText);
+            outputFields.appendChild(cryptoFail);
+
+            return;
+         }
+
+         console.log(decryptedXVal);
+
+         const decrXvalDiv = document.createElement('div');
+         decrXvalDiv.className = 'output-field';
+
+         const decrXvalText = document.createElement('span');
+         decrXvalText.textContent = 'Decrypted XVal: ' + decryptedXVal.toString(CryptoJS.enc.Hex);
+
+         decrXvalDiv.appendChild(decrXvalText);
+         outputFields.appendChild(decrXvalDiv);
+
+         const summary = document.createElement('div');
+         summary.className = 'output-field';
+
+         const summaryText = document.createElement('span');
+
+         if(decryptedXVal.words[0] == 0 && decryptedXVal.words[1] == 0)
+         {
+            summaryText.textContent = 'Security data is clean';
+            summaryText.className = 'checkmark';
+         }
+         else
+         {
+            summaryText.textContent = 'Security events detected';
+            summaryText.className = 'red-x';
+         }
+
+         summary.appendChild(summaryText);
+         outputFields.appendChild(summary);
+
+         if(detailed)
+         {
+            for (let i = 1; i <= 18; i++) {
+                  const isValid = Math.random() > 0.5; // Randomly determine validity
+
+                  const field = document.createElement('div');
+                  field.className = 'output-field';
+
+                  const label = document.createElement('span');
+                  label.textContent = `Field ${i}: Detailed Check`;
+
+                  const icon = document.createElement('span');
+                  icon.textContent = isValid ? '✅' : '❌';
+                  icon.className = isValid ? 'checkmark' : 'red-x';
+
+                  field.appendChild(label);
+                  field.appendChild(icon);
+
+                  outputFields.appendChild(field);
+            }
+         }
+      }
+   </script>
+</body>
+</html>
