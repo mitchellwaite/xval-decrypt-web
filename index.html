@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centered Form</title>
+    <title>Xbox 360 XVal Decryptor</title>
     <style>
         body {
             display: flex;
@@ -103,14 +103,14 @@
 <body>
     <div class="form-container">
       <h1>Xbox 360 XVal Decryptor</h1>
-      <p>Determines if any security events (that might lead to a ban) have been logged to the 360's flash memory. <br><br>The X value and console serial number can be found under System Settings > Console Settings > System Info.<br><br>The serial number is 12 digits long and the X value is in the format: AAAA-BBBB-CCCC-DDDD</p>
+      <a href="https://github.com/mitchellwaite/xval-decrypt-web">About & Source</a>
         <form id="myForm" onsubmit="return validateForm()">
             <label for="consoleSerial">Console Serial:</label>
-            <input type="text" id="consoleSerial" name="ConsoleSerial" required value="022953792407" maxlength=12>
+            <input type="text" id="consoleSerial" name="ConsoleSerial" required maxlength=12>
             <div id="consoleSerialError" class="error"></div>
 
             <label for="xVal">XVal:</label>
-            <input type="text" id="xVal" name="XVal" required value="4140-7655-4DF6-1666" maxlength=19>
+            <input type="text" id="xVal" name="XVal" required maxlength=19>
             <div id="xValError" class="error"></div>
 
             <button type="button" onclick="handleOutput(false)">Check XVal</button>
