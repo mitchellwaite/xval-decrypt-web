@@ -1,6 +1,6 @@
 # xval-decrypt-web
 
-Hosted at https://www.mitchellwaite.ca/xval-decrypt-web/
+Hosted through github pages at https://www.mitchellwaite.ca/xval-decrypt-web/
 
 Simple web app to decrypt Xbox 360 XVal data, and can be used to determine if any security events have been logged to the Xbox 360's flash memory. Logged events indicate a security violation of some sort and might be an indication of a future console ban. Xval also indicates whether the console is currently banned.
 
@@ -8,7 +8,7 @@ The X value and console serial number can be found under System Settings > Conso
 
 ![system info screen](sysinfo.png)
 
-Only CryptoJS is used here (because DES...) so there's minimal bloat.
+Only CryptoJS is used here (because DES...) so there's minimal bloat. There are no CDN references or other libraries and the app can be downloaded and run locally without an internet connection.
 
 Based on the python script originally written by Redline99.
 
