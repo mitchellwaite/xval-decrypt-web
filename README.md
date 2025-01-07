@@ -14,6 +14,12 @@ Based on the python script originally written by Redline99.
 
 - Originally posted at XboxHacker: http://www.xboxhacker.org/index.php?topic=16401.0
 
+## Test Values
+
+- Serial: 031897772807 / X: DA9C-DC84-43A9-BB4C should return a console ban flag
+- Serial: 457649714305 / X: 6286-1A08-2FF3-0F77 should be clean
+
+
 ## Event Flags
 
 - FLAG_SSB_NONE                         = 0x0000

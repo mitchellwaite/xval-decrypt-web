@@ -9,8 +9,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            margin: 20px;
             font-family: Arial, sans-serif;
             background-color: #eef2f3;
         }
@@ -21,7 +20,7 @@
             border-radius: 10px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
         }
 
         form {
@@ -114,9 +113,8 @@
             <div id="xValError" class="error"></div>
 
             <button type="button" onclick="handleOutput(false)">Check XVal</button>
-
-            <!-- TODO implement detailed output -->
-            <!-- <button type="button" onclick="handleOutput(true)">Detailed Output</button> -->
+            <button type="button" onclick="handleOutput(true)">Show Details</button>
+            <button type="button" onclick="resetForm()">Reset</button>
         </form>
 
         <div class="output-fields" id="outputFields">
@@ -125,6 +123,39 @@
     </div>
 
     <script>
+      // AP2.5 related constants
+      const xvalAP25List = {
+         "FLAG_SSB_CIV_HASH_FAILURE":[0x1000, "Content Integrity Verification Hash Failure"],
+         "FLAG_SSB_AUTH_EX_NO_TABLE":[0x2000, "AuthEx table (dae.bin) missing"],
+         "FLAG_SSB_AUTH_EX_RESERVED":[0x0004, "AuthEx Reserved"]
+      }
+
+      // DVD/DVD drive related constants
+      const xvalDVDList = {
+         "FLAG_SSB_INVALID_DVD_GEOMETRY":[0x0008, "Invalid DVD geometry"],
+         "FLAG_SSB_INVALID_DVD_DMI":[0x0010, "Invalid DVD DMI"],
+         "FLAG_SSB_ODD_VIOLATION":[0x0800, "DVD Drive Violation"],
+         "FLAG_SSB_ODD_ENFORCE_THROUGHPUT_LOW":[0x8000, "DVD Drive Throughput Low"],
+         "FLAG_SSB_ODD_ENFORCE_THROUGHPUT_HIGH":[0x10000, "DVD Drive Throughput High"]
+      }
+
+      // Other constants
+      const xvalOtherList = {
+         "FLAG_SSB_UNAUTHORIZED_INSTALL":[0x0100, "Unauthorized Install"],
+         "FLAG_SSB_KEYVAULT_POLICY_VIOLATION":[0x0200, "Keyvault Policy Violation"],
+         "FLAG_SSB_CRL_CERTIFICATE_REVOKED":[0x0080, "Certificate Revoked"],
+         "FLAG_SSB_CRL_DATA_INVALID":[0x4000, "CRL Data Invalid"]
+      }
+
+      // Deprecated constants
+      const xvalDeprecatedList = {
+         "FLAG_SSB_AUTH_EX_FAILURE_D":[0x0001, "AuthEx Challenge Failure"],
+         "FLAG_SSB_AUTH_EX_NO_TABLE_D":[0x0002, "AuthEx table missing (deprecated)"],
+         "FLAG_SSB_DVD_KEYVAULT_PAIR_MISMATCH_D":[0x0020, "DVD Keyvault Pair Mismatch"],
+         "FLAG_SSB_CRL_DATA_INVALID_D":[0x0040, "CRL Data Invalid (deprecated)"],
+         "FLAG_SSB_CONSOLE_BANNED_D":[0x0400, "Console Banned"]
+      }
+
       function decryptXval(consoleSerial, encryptedXval) {
          // Step 1: Generate the HMAC-SHA1 of the message using the given key
          const hmac = CryptoJS.HmacSHA1("XBOX360SSB", consoleSerial);
@@ -141,18 +172,6 @@
       }
 
       function validateForm() {
-         const xVal = document.getElementById('xVal').value;
-         const xValError = document.getElementById('xValError');
-
-         // Regular expression to match 16 alphanumeric characters or 4 groups of 4 separated by dashes
-         const xValPattern = /^(\w{16}|(\w{4}-){3}\w{4})$/;
-
-         if (!xValPattern.test(xVal)) {
-               xValError.textContent = 'XVal must be 16 alphanumeric characters or 4 groups of 4 separated by dashes.';
-               return false;
-         }
-
-         xValError.textContent = '';
 
          const consoleSerial = document.getElementById('consoleSerial').value;
          const consoleSerialError = document.getElementById('consoleSerialError');
@@ -167,19 +186,97 @@
 
          consoleSerialError.textContent = '';
 
+         const xVal = document.getElementById('xVal').value;
+         const xValError = document.getElementById('xValError');
+
+         // Regular expression to match 16 alphanumeric characters or 4 groups of 4 separated by dashes
+         const xValPattern = /^(\w{16}|(\w{4}-){3}\w{4})$/;
+
+         if (!xValPattern.test(xVal)) {
+               xValError.textContent = 'XVal must be 16 alphanumeric characters or 4 groups of 4 separated by dashes.';
+               return false;
+         }
+
+         xValError.textContent = '';
+
          return true;
       }
 
+      function createAndAppendDivWithText(outputFields, textData, className){
+         const summary = document.createElement('div');
+         summary.className = 'output-field';
+
+         const summaryText = document.createElement('span');
+
+         summaryText.textContent = textData;
+         summaryText.className = className;
+
+         summary.appendChild(summaryText);
+         outputFields.appendChild(summary);
+      }
+
+      function createAndAppendFlagList(outputFields, decryptedXVal, xvalFlagList){
+         for(const xflags in xvalFlagList){
+            const xflag = xvalFlagList[xflags];
+
+            //console.log(xflag);
+            //console.log(decryptedXVal);
+
+            if(decryptedXVal.words[1] & xflag[0]){
+               createAndAppendDivWithText(
+                  outputFields,
+                  "❌ " + xflag[1] + " flag set",
+                  'red-x'   
+               );
+            }
+            else{
+               createAndAppendDivWithText(
+                  outputFields,
+                  "✅ " + xflag[1] + " flag not set",
+                  ''   
+               );
+            }
+         }
+      }
+
+      function createAndAppendFlagSection(outputFields, sectionTitle, decryptedXVal, xvalFlagList){
+         createAndAppendDivWithText(
+               outputFields,
+               ' ',
+               ''   
+            );
+
+            createAndAppendDivWithText(
+               outputFields,
+               sectionTitle,
+               ''   
+            );
+
+            createAndAppendFlagList(
+               outputFields,
+               decryptedXVal,
+               xvalFlagList
+            );
+      }
+
+      function resetForm(detailed) {
+         const outputFields = document.getElementById('outputFields');
+         outputFields.innerHTML = ''; // Clear previous outputs
+
+         document.getElementById('xVal').value = '';
+         document.getElementById('consoleSerial').value = '';
+      }
+
       function handleOutput(detailed) {
+         // Prepare the output
+         const outputFields = document.getElementById('outputFields');
+         outputFields.innerHTML = ''; // Clear previous outputs
+
          if (!validateForm()) return;
 
          // Grab the input fields
          const xVal = document.getElementById('xVal').value.replace(/-/g, '');
          const consoleSerial = document.getElementById('consoleSerial').value;
-
-         // Prepare the output
-         const outputFields = document.getElementById('outputFields');
-         outputFields.innerHTML = ''; // Clear previous outputs
 
          // Decrypt the XVal
          const decryptedXVal = decryptXval(consoleSerial, xVal);
@@ -187,69 +284,66 @@
          // There should be exactly 8 bytes in the output, anything else is an error
          if(decryptedXVal.sigBytes != 8)
          {
-            const cryptoFail = document.createElement('div');
-            cryptoFail.className = 'output-field';
-
-            const cryptoFailText = document.createElement('span');
-            cryptoFailText.textContent = 'Decryption error, double check the input data';
-            cryptoFailText.className = 'red-x';
-
-            cryptoFail.appendChild(cryptoFailText);
-            outputFields.appendChild(cryptoFail);
+            createAndAppendDivWithText(
+               outputFields,
+               'Decryption error, double check the input data',
+               'red-x'   
+            );
 
             return;
          }
 
-         console.log(decryptedXVal);
+         //console.log(decryptedXVal);
 
-         const decrXvalDiv = document.createElement('div');
-         decrXvalDiv.className = 'output-field';
-
-         const decrXvalText = document.createElement('span');
-         decrXvalText.textContent = 'Decrypted XVal: ' + decryptedXVal.toString(CryptoJS.enc.Hex);
-
-         decrXvalDiv.appendChild(decrXvalText);
-         outputFields.appendChild(decrXvalDiv);
-
-         const summary = document.createElement('div');
-         summary.className = 'output-field';
-
-         const summaryText = document.createElement('span');
+         createAndAppendDivWithText(
+               outputFields,
+               'Decrypted XVal: ' + decryptedXVal.toString(CryptoJS.enc.Hex),
+               ''
+            );
 
          if(decryptedXVal.words[0] == 0 && decryptedXVal.words[1] == 0)
          {
-            summaryText.textContent = 'Security data is clean';
-            summaryText.className = 'checkmark';
+            createAndAppendDivWithText(
+               outputFields,
+               'Security data is clean',
+               'checkmark'   
+            );
          }
          else
          {
-            summaryText.textContent = 'Security events detected';
-            summaryText.className = 'red-x';
+            createAndAppendDivWithText(
+               outputFields,
+               'Security events detected',
+               'red-x'   
+            );
          }
-
-         summary.appendChild(summaryText);
-         outputFields.appendChild(summary);
 
          if(detailed)
          {
-            for (let i = 1; i <= 18; i++) {
-                  const isValid = Math.random() > 0.5; // Randomly determine validity
+            createAndAppendFlagSection(outputFields, 'AP2.5 Flags', decryptedXVal, xvalAP25List);
 
-                  const field = document.createElement('div');
-                  field.className = 'output-field';
+            createAndAppendFlagSection(outputFields, 'DVD Flags', decryptedXVal, xvalDVDList);
 
-                  const label = document.createElement('span');
-                  label.textContent = `Field ${i}: Detailed Check`;
+            createAndAppendFlagSection(outputFields, 'Deprecated Flags', decryptedXVal, xvalDeprecatedList);
 
-                  const icon = document.createElement('span');
-                  icon.textContent = isValid ? '✅' : '❌';
-                  icon.className = isValid ? 'checkmark' : 'red-x';
+            createAndAppendFlagSection(outputFields, 'Other Flags', decryptedXVal, xvalOtherList);
 
-                  field.appendChild(label);
-                  field.appendChild(icon);
-
-                  outputFields.appendChild(field);
+            if(decryptedXVal.words[0] != 0){
+               createAndAppendDivWithText(
+                  outputFields,
+                  "❌ Unknown violation flag set (high word)",
+                  'red-x'   
+               );
             }
+
+            if(decryptedXVal.words[1] & 0xFFFE0000){
+               createAndAppendDivWithText(
+                  outputFields,
+                  "❌ Unknown violation flag set (low word)",
+                  'red-x'   
+               );
+            }
+
          }
       }
    </script>
